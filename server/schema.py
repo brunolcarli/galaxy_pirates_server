@@ -29,7 +29,7 @@ queries = (
 
 mutations = (
     graphene.ObjectType,
-    # api_schema.Mutation,
+    api_schema.Mutation,
 )
 
 class Query(*queries):

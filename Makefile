@@ -10,3 +10,6 @@ migrate:
 
 shell:
 	python3 manage.py shell
+
+start_farms:
+	python3 manage.py init_farming

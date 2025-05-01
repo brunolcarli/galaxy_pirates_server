@@ -40,6 +40,7 @@ class Galaxy(models.Model):
 
 class SolarSystem(models.Model):
     id = models.IntegerField(primary_key=True)
+    galaxy_position = models.IntegerField()
     position_1 = models.OneToOneField(Planet, on_delete=models.CASCADE, null=True, related_name='p1')
     position_2 = models.OneToOneField(Planet, on_delete=models.CASCADE, null=True, related_name='p2')
     position_3 = models.OneToOneField(Planet, on_delete=models.CASCADE, null=True, related_name='p3')
