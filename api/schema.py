@@ -1,9 +1,15 @@
+from datetime import datetime, timedelta
 from random import randint
+from redis import Redis
+import numpy as np
 import graphene
 from django.conf import settings
-from api.models import Universe, Galaxy, SolarSystem, Planet, Ship
+from django.core.management import call_command
+from api.models import Universe, Galaxy, SolarSystem, Planet, Ship, Mission
 from api.util import BuildingResourceRatio
 from api.ships import ships
+
+
 
 
 class ResourceCostType(graphene.ObjectType):
@@ -22,13 +28,34 @@ class ShipType(graphene.ObjectType):
     id = graphene.Int()
     name = graphene.String()
     description = graphene.String()
-    offense = graphene.Int()
-    shield = graphene.Int()
-    cargo = graphene.Int()
+    offense_power = graphene.Int()
+    shield_power = graphene.Int()
+    cargo_space = graphene.Int()
     speed = graphene.Int()
     cost = graphene.Field(ResourceCostType)
     build_time = graphene.Int()
     requirements = graphene.Field(RequirementsType)
+
+
+class MissionType(graphene.ObjectType):
+    kind = graphene.String()
+    origin_galaxy = graphene.Int()
+    origin_solar_system = graphene.Int()
+    origin_position = graphene.Int()
+    target_galaxy = graphene.Int()
+    target_solar_system = graphene.Int()
+    target_position = graphene.Int()
+    speed = graphene.Int()
+    fleet = graphene.List(ShipType)
+    steel = graphene.Int()
+    water = graphene.Int()
+    gold = graphene.Int()
+    retreat = graphene.Boolean()
+    report = graphene.String()
+    launch_datetime = graphene.DateTime()
+    arrival_datetime = graphene.DateTime()
+    return_datetime = graphene.DateTime()
+    distance = graphene.Int()
 
 
 class PlanetType(graphene.ObjectType):
@@ -49,6 +76,10 @@ class PlanetType(graphene.ObjectType):
     military_power = graphene.Int()
     engine_power = graphene.Int()
     shield_power = graphene.Int()
+    fleet = graphene.List(ShipType)
+
+    def resolve_fleet(self, info, **kwargs):
+        return self.fleet.all()
 
 
 class SolarSystemType(graphene.ObjectType):
@@ -274,6 +305,66 @@ class ImproveEnginePower(graphene.relay.ClientIDMutation):
         return ImproveEnginePower(planet)
 
 
+class ImproveMilitaryPower(graphene.relay.ClientIDMutation):
+    planet = graphene.Field(PlanetType)
+
+    class Input:
+        planet_id = graphene.ID(required=True)
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        planet = Planet.objects.get(id=kwargs['planet_id'])
+        
+        if planet.military_power == 50:
+            raise Exception('Military power already reached max level')
+
+        if planet.fields_used == planet.size:
+            raise Exception('Planet reached max occupation size, do not have space left for building')
+
+        steel, gold, water = BuildingResourceRatio.get_military_upgrade_ratio(planet.gold_mine_lv)
+
+        if (planet.steel < steel) or (planet.gold < gold) or (planet.water < water):
+            raise Exception('Do not have necessary amount of resources, cannot improve the building')
+
+        planet.steel -= steel
+        planet.gold -= gold
+        planet.water -= water
+        planet.fields_used += 1
+        planet.military_power += 1
+        planet.save()
+
+        return ImproveMilitaryPower(planet)
+
+
+class ImproveShieldPower(graphene.relay.ClientIDMutation):
+    planet = graphene.Field(PlanetType)
+
+    class Input:
+        planet_id = graphene.ID(required=True)
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        planet = Planet.objects.get(id=kwargs['planet_id'])
+        
+        if planet.shield_power == 50:
+            raise Exception('Shield power already reached max level')
+
+        if planet.fields_used == planet.size:
+            raise Exception('Planet reached max occupation size, do not have space left for building')
+
+        steel, gold, water = BuildingResourceRatio.get_military_upgrade_ratio(planet.gold_mine_lv)
+
+        if (planet.steel < steel) or (planet.gold < gold) or (planet.water < water):
+            raise Exception('Do not have necessary amount of resources, cannot improve the building')
+
+        planet.steel -= steel
+        planet.gold -= gold
+        planet.water -= water
+        planet.fields_used += 1
+        planet.shield_power += 1
+        planet.save()
+
+        return ImproveShieldPower(planet)
+
+
 class BuildShip(graphene.relay.ClientIDMutation):
     ship = graphene.Field(ShipType)
 
@@ -308,12 +399,12 @@ class BuildShip(graphene.relay.ClientIDMutation):
         planet.water -= water
         planet.gold -= gold
 
-        new_ship = Ship.objetcts.create(
+        new_ship = Ship.objects.create(
             name=ship['name'],
             description=ship['description'],
-            offense_power=ship['offense'],
-            shield_power=ship['shield'],
-            cargo_space=ship['cargo'],
+            offense_power=ship['offense_power'],
+            shield_power=ship['shield_power'],
+            cargo_space=ship['cargo_space'],
             speed=ship['speed']
         )
         new_ship.save()
@@ -322,10 +413,78 @@ class BuildShip(graphene.relay.ClientIDMutation):
 
         return BuildShip(ship)
 
+
+class SendAttackMission(graphene.relay.ClientIDMutation):
+    mission = graphene.Field(MissionType)
+
+    class Input:
+        origin_planet = graphene.ID(required=True)
+        target_planet = graphene.ID(required=True)
+        fleet = graphene.List(graphene.ID, required=True)
+        speed = graphene.Float(default=1.0)
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        origin_planet = Planet.objects.get(id=kwargs['origin_planet'])
+        target_planet = Planet.objects.get(id=kwargs['target_planet'])
+
+        fleet = Ship.objects.filter(id__in=kwargs['fleet'])
+        fleet = [ship for ship in fleet if ship in origin_planet.fleet.all()]
+        for ship in fleet:
+            origin_planet.fleet.remove(ship)
+
+        if len(fleet) == 0:
+            raise Exception('Invalid ship assigment')
+
+        src_coord = np.array([origin_planet.galaxy, origin_planet.solar_system, origin_planet.position])
+        tgt_coord = np.array([target_planet.galaxy, target_planet.solar_system, target_planet.position])
+        distance = np.linalg.norm(tgt_coord - src_coord)
+        travel_time = int( ((distance*8) / origin_planet.engine_power) * kwargs['speed'])
+
+        now = datetime.now()
+        attack_arrive = now + timedelta(seconds=travel_time)
+        return_to_planet = attack_arrive + timedelta(seconds=travel_time)
+
+        mission = Mission.objects.create(
+            kind='Attack',
+            origin_galaxy=origin_planet.galaxy,
+            origin_solar_system=origin_planet.solar_system,
+            origin_position=origin_planet.position,
+            target_galaxy=target_planet.galaxy,
+            target_solar_system=target_planet.solar_system,
+            target_position=target_planet.position,
+            speed=kwargs['speed'],
+            launch_datetime=now,
+            arrival_datetime=attack_arrive,
+            return_datetime=return_to_planet,
+            state='going',
+            distance=distance,
+            success=False,
+            travel_time=travel_time,
+        )
+        mission.fleet.set(fleet)
+        # for ship in fleet:
+        #     mission.fleet.add(ship)
+        mission.save()
+        origin_planet.save()
+
+
+
+        r = Redis(host='104.237.1.145', port=6379, db=0)
+
+        r.set(f'mission_{mission.id}', mission.id)
+
+        return SendAttackMission(mission)
+
+
 class Mutation:
     create_planet = CreatePlanet.Field()
     improve_water_farm = ImproveWaterFarm.Field()
     improve_steel_mine = ImproveSteelMine.Field()
     improve_gold_mine = ImproveGoldMine.Field()
     improve_engine_power = ImproveEnginePower.Field()
+    improve_military_power = ImproveMilitaryPower.Field()
+    improve_shield_power = ImproveShieldPower.Field()
+    
     build_ship = BuildShip.Field()
+    
+    send_attack_mission = SendAttackMission.Field()

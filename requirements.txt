@@ -47,3 +47,5 @@ graphene-django==2.2.0
 mysql-connector-python==8.0.32
 django-mysql
 requests
+numpy==1.25.2
+redis

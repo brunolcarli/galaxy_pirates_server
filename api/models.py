@@ -1,7 +1,5 @@
 from django.db import models
 
-# Create your models here.
-
 
 class Ship(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False)
@@ -10,6 +8,31 @@ class Ship(models.Model):
     shield_power = models.IntegerField()
     cargo_space = models.IntegerField()
     speed = models.IntegerField()
+
+
+
+class Mission(models.Model):
+    kind = models.CharField(max_length=50, null=False, blank=False)
+    origin_galaxy = models.IntegerField()
+    origin_solar_system = models.IntegerField()
+    origin_position = models.IntegerField()
+    target_galaxy = models.IntegerField()
+    target_solar_system = models.IntegerField()
+    target_position = models.IntegerField()
+    speed = models.IntegerField()
+    fleet = models.ManyToManyField(Ship)
+    steel = models.IntegerField(default=0)
+    water = models.IntegerField(default=0)
+    gold = models.IntegerField(default=0)
+    retreat = models.BooleanField(default=False)
+    report = models.TextField()
+    launch_datetime = models.DateTimeField()
+    arrival_datetime = models.DateTimeField()
+    return_datetime = models.DateTimeField()
+    distance = models.IntegerField()
+    success = models.BooleanField()
+    travel_time = models.IntegerField()
+    state = models.CharField(max_length=50, null=False, blank=False)
 
 
 class Planet(models.Model):
