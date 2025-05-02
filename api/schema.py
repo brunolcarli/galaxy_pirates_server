@@ -10,8 +10,6 @@ from api.util import BuildingResourceRatio
 from api.ships import ships
 
 
-
-
 class ResourceCostType(graphene.ObjectType):
     steel = graphene.Int()
     water = graphene.Int()
@@ -35,6 +33,7 @@ class ShipType(graphene.ObjectType):
     cost = graphene.Field(ResourceCostType)
     build_time = graphene.Int()
     requirements = graphene.Field(RequirementsType)
+    integrity = graphene.Int()
 
 
 class MissionType(graphene.ObjectType):
@@ -405,7 +404,8 @@ class BuildShip(graphene.relay.ClientIDMutation):
             offense_power=ship['offense_power'],
             shield_power=ship['shield_power'],
             cargo_space=ship['cargo_space'],
-            speed=ship['speed']
+            speed=ship['speed'],
+            integrity=ship['integrity']
         )
         new_ship.save()
         planet.fleet.add(new_ship)

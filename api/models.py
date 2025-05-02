@@ -8,7 +8,7 @@ class Ship(models.Model):
     shield_power = models.IntegerField()
     cargo_space = models.IntegerField()
     speed = models.IntegerField()
-
+    integrity = models.IntegerField()
 
 
 class Mission(models.Model):
