@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+
+  server:
+    build:
+        context: "."
+    image: galaxy_server:devel
+    restart: on-failure
+    container_name: galaxy_server_container
+    command: python3 manage.py runserver 0.0.0.0:6424
+    env_file: server/environment/server.env
+    volumes:
+      - .:/app
+      - static_data:/app/static
+    ports:
+      - 6424:6424
+
+  attack_mission:
+    build: .
+    image: galaxy_server:devel
+    restart: on-failure
+    command: python3 manage.py attack_mission
+    env_file: server/environment/server.env
+
+  farm:
+    build: .
+    image: galaxy_server:devel
+    restart: on-failure
+    command: python3 manage.py init_farming
+    env_file: server/environment/server.env
+
+
+volumes:
+  static_data:
