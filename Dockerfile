@@ -19,8 +19,7 @@ RUN python3 -m pip install --upgrade cython
 
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
-RUN pip3 install mysql-connector-python==8.0.32
-RUN pip3 install django-mysql
+
 
 COPY . .
 
