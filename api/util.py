@@ -226,7 +226,7 @@ class BuildingResourceRatio:
         return resources[mine_lv]
 
     @staticmethod
-    def get_gold_mine_resource_ration(mine_lv):
+    def get_gold_mine_resource_ratio(mine_lv):
         resources = {
             1: [1500, 1000, 1000],
             2: [2700, 1800, 1800],
