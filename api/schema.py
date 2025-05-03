@@ -82,7 +82,6 @@ class PlanetType(graphene.ObjectType):
 
 
 class SolarSystemType(graphene.ObjectType):
-    id = graphene.ID()
     galaxy_position = graphene.Int()
     position_1 = graphene.Field(PlanetType)
     position_2 = graphene.Field(PlanetType)
