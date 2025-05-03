@@ -4,6 +4,7 @@ class BuildingResourceRatio:
     @staticmethod
     def get_shield_upgrade_ratio(shield_lv):
         resources = {
+            0: [200, 100, 100],
             1: [500, 100, 200],
             2: [800, 160, 320],
             3: [1280, 256, 512],
@@ -60,6 +61,7 @@ class BuildingResourceRatio:
     @staticmethod
     def get_military_upgrade_ratio(military_lv):
         resources = {
+            0: [200, 100, 200],
             1: [500, 100, 200],
             2: [800, 160, 320],
             3: [1280, 256, 512],
@@ -116,6 +118,7 @@ class BuildingResourceRatio:
     @staticmethod
     def get_engine_upgrade_ratio(engine_lv):
         resources = {
+            0: [500, 500, 500],
             1: [1000, 1000, 1000],
             2: [2000, 2000, 2000],
             3: [4000, 4000, 4000],
