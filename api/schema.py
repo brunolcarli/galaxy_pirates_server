@@ -166,12 +166,26 @@ class Query:
         if kwargs['building_type'] == 'steel_mine':
             steel, gold, water = BuildingResourceRatio.get_steel_mine_resource_ratio(building_lv)
             return BuildingRequiredResources(name='Steel Mine', lv=building_lv, steel=steel, gold=gold, water=water)
+
         if kwargs['building_type'] == 'gold_mine':
             steel, gold, water = BuildingResourceRatio.get_gold_mine_resource_ratio(building_lv)
             return BuildingRequiredResources(name='Gold Mine', lv=building_lv, steel=steel, gold=gold, water=water)
+
         if kwargs['building_type'] == 'water_farm':
             steel, gold, water = BuildingResourceRatio.get_water_farm_resource_ratio(building_lv)
             return BuildingRequiredResources(name='Water Farm', lv=building_lv, steel=steel, gold=gold, water=water)
+
+        if kwargs['building_type'] == 'military_power':
+            steel, gold, water = BuildingResourceRatio.get_military_upgrade_ratio(building_lv)
+            return BuildingRequiredResources(name='Military Power', lv=building_lv, steel=steel, gold=gold, water=water)
+
+        if kwargs['building_type'] == 'shield_power':
+            steel, gold, water = BuildingResourceRatio.get_shield_upgrade_ratio(building_lv)
+            return BuildingRequiredResources(name='Shield Power', lv=building_lv, steel=steel, gold=gold, water=water)
+
+        if kwargs['building_type'] == 'engine_power':
+            steel, gold, water = BuildingResourceRatio.get_engine_upgrade_ratio(building_lv)
+            return BuildingRequiredResources(name='Engine Power', lv=building_lv, steel=steel, gold=gold, water=water)
 
 
 ################################################
