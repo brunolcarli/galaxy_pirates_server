@@ -299,7 +299,7 @@ class ImproveGoldMine(graphene.relay.ClientIDMutation):
         if planet.fields_used == planet.size:
             raise Exception('Planet reached max occupation size, do not have space left for building')
 
-        steel, gold, water = BuildingResourceRatio.get_gold_mine_resource_ration(planet.gold_mine_lv)
+        steel, gold, water = BuildingResourceRatio.get_gold_mine_resource_ratio(planet.gold_mine_lv)
 
         if (planet.steel < steel) or (planet.gold < gold) or (planet.water < water):
             raise Exception('Do not have necessary amount of resources, cannot improve the building')
