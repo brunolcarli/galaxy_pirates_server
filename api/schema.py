@@ -160,7 +160,7 @@ class Query:
     )
     def resolve_building_next_level(self, info, **kwargs):
         building_lv = kwargs['current_level']
-        if building_lv < 1 or building_lv >= 50:
+        if building_lv < 0 or building_lv >= 50:
             raise Exception('Invalid building level')
 
         if kwargs['building_type'] == 'steel_mine':
