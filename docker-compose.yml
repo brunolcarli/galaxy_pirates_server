@@ -8,7 +8,7 @@ services:
     image: galaxy_server:devel
     restart: on-failure
     container_name: galaxy_server_container
-    command: python3 manage.py runserver 0.0.0.0:6424
+    command: make run_service
     env_file: server/environment/server.env
     volumes:
       - .:/app
@@ -20,15 +20,19 @@ services:
     build: .
     image: galaxy_server:devel
     restart: on-failure
-    command: python3 manage.py attack_mission
+    command: make attack_mission
     env_file: server/environment/server.env
+    depends_on:
+      - server
 
   farm:
     build: .
     image: galaxy_server:devel
     restart: on-failure
-    command: python3 manage.py init_farming
+    command: make start_farms
     env_file: server/environment/server.env
+    depends_on:
+      - server
 
 
 volumes:

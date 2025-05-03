@@ -19,3 +19,8 @@ bigbang:
 
 attack_mission:
 	python3 manage.py attack_mission
+
+run_service:
+	make install
+	make migrate
+	make run
