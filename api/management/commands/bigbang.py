@@ -11,8 +11,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         print('The result of a random atom collision was a big explosion that created a universe...')
-        universe = Universe.objects.create()
+        universe, created = Universe.objects.get_or_create(id=1)
 
+        if created:
+            print('Already created universe, you a here right now being part of it...')
+            return
 
         for gi in range(9):
             galaxy = Galaxy.objects.create(id=gi+1)
