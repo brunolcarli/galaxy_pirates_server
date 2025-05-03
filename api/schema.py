@@ -116,6 +116,14 @@ class UniverseType(graphene.ObjectType):
         return self.galaxies.all()
 
 
+class BuildingRequiredResources(graphene.ObjectType):
+    name = graphene.String()
+    lv = graphene.Int()
+    steel = graphene.Int()
+    gold = graphene.Int()
+    water = graphene.Int()
+
+
 
 ################################################
 # QUERIES
@@ -145,6 +153,25 @@ class Query:
     def resolve_hangar(self, info, **kwargs):
         return [ShipType(**ship) for ship in ships]
 
+    building_next_level = graphene.Field(
+        BuildingRequiredResources,
+        current_level=graphene.Int(required=True),
+        building_type=graphene.String(required=True)
+    )
+    def resolve_building_next_level(self, info, **kwargs):
+        building_lv = kwargs['current_level']
+        if building_lv < 1 or building_lv >= 50:
+            raise Exception('Invalid building level')
+
+        if kwargs['building_type'] == 'steel_mine':
+            steel, gold, water = BuildingResourceRatio.get_steel_mine_resource_ratio(building_lv)
+            return BuildingRequiredResources(name='Steel Mine', lv=building_lv, steel=steel, gold=gold, water=water)
+        if kwargs['building_type'] == 'gold_mine':
+            steel, gold, water = BuildingResourceRatio.get_gold_mine_resource_ratio(building_lv)
+            return BuildingRequiredResources(name='Gold Mine', lv=building_lv, steel=steel, gold=gold, water=water)
+        if kwargs['building_type'] == 'water_farm':
+            steel, gold, water = BuildingResourceRatio.get_water_farm_resource_ratio(building_lv)
+            return BuildingRequiredResources(name='Water Farm', lv=building_lv, steel=steel, gold=gold, water=water)
 
 
 ################################################
