@@ -13,7 +13,7 @@ class Command(BaseCommand):
         print('The result of a random atom collision was a big explosion that created a universe...')
         universe, created = Universe.objects.get_or_create(id=1)
 
-        if created:
+        if not created:
             print('Already created universe, you a here right now being part of it...')
             return
 
