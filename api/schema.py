@@ -28,6 +28,7 @@ class RequirementsType(graphene.ObjectType):
 
 class ShipType(graphene.ObjectType):
     id = graphene.Int()
+    index = graphene.Int()
     name = graphene.String()
     description = graphene.String()
     offense_power = graphene.Int()
@@ -38,6 +39,9 @@ class ShipType(graphene.ObjectType):
     build_time = graphene.Int()
     requirements = graphene.Field(RequirementsType)
     integrity = graphene.Int()
+
+    def resolve_index(self, info, **kwargs):
+        return self.id
 
 
 class MissionType(graphene.ObjectType):
