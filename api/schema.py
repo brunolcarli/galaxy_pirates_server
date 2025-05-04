@@ -1,3 +1,9 @@
+"""
+- [2025]
+- Main API schema containing the ojects and queries.
+- @beelzebruno
+- *.beelzeware.dev
+"""
 from datetime import datetime, timedelta
 from random import randint
 from redis import Redis
@@ -8,9 +14,7 @@ from api.models import Universe, Galaxy, Planet, Ship, Mission, UserModel, Inbox
 from api.util import BuildingResourceRatio
 from api.ships import ships
 import graphql_jwt
-# TODO from users.utils import access_required
-
-
+from api.user_auth import access_required
 
 
 
@@ -186,17 +190,19 @@ class UserType(graphene.ObjectType):
 # QUERIES
 ################################################
 
-
 class Query:
     version = graphene.String()
     def resolve_version(self, info, **kwargs):
         return settings.VERSION
 
+    
     user = graphene.Field(
         UserType,
         id=graphene.ID(required=True),
         username=graphene.String(required=True)
     )
+
+    @access_required
     def resolve_user(self, info, **kwargs):
         return UserModel.objects.get(**kwargs)
 
@@ -204,11 +210,14 @@ class Query:
         UserType,
         limit=graphene.Int()
     )
+
+    @access_required
     def resolve_ranking(self, info, **kwargs):
         return UserModel.objects.all().order_by('-fleet_count', '-buildings')[:kwargs.get('limit', 100)]
 
-
     universe = graphene.Field(UniverseType)
+    
+    @access_required
     def resolve_universe(self, info, **kwargs):
         return Universe.objects.first()
 
@@ -217,12 +226,15 @@ class Query:
         galaxy__id=graphene.ID(required=True),
         galaxy_position=graphene.Int(required=True)
     )
+
+    @access_required
     def resolve_solar_system(self, info, **kwargs):
         galaxy = Galaxy.objects.get(id=kwargs['galaxy__id'])
         return galaxy.solarsystem_set.all()[kwargs['galaxy_position']]
 
     hangar = graphene.List(ShipType)
 
+    @access_required
     def resolve_hangar(self, info, **kwargs):
         return [ShipType(**ship) for ship in ships]
 
@@ -231,6 +243,8 @@ class Query:
         current_level=graphene.Int(required=True),
         building_type=graphene.String(required=True)
     )
+
+    @access_required
     def resolve_building_next_level(self, info, **kwargs):
         building_lv = kwargs['current_level']
         if building_lv < 0 or building_lv >= 50:
@@ -267,6 +281,7 @@ class Query:
         datetime__lte=graphene.DateTime()
     )
 
+    @access_required
     def resolve_mission_reports(self, info, **kwargs):
         return Mission.objects.filter(**kwargs)
 
@@ -286,6 +301,7 @@ class CreatePlanet(graphene.relay.ClientIDMutation):
         solar_system = graphene.Int(required=True)
         position = graphene.Int(required=True)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         galaxy = Galaxy.objects.get(id=kwargs['galaxy'])
         ss = galaxy.solarsystem_set.all()[kwargs['solar_system']]
@@ -316,6 +332,7 @@ class ImproveWaterFarm(graphene.relay.ClientIDMutation):
     class Input:
         planet_id = graphene.ID(required=True)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         planet = Planet.objects.get(id=kwargs['planet_id'])
         
@@ -346,6 +363,7 @@ class ImproveSteelMine(graphene.relay.ClientIDMutation):
     class Input:
         planet_id = graphene.ID(required=True)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         planet = Planet.objects.get(id=kwargs['planet_id'])
         
@@ -375,6 +393,7 @@ class ImproveGoldMine(graphene.relay.ClientIDMutation):
     class Input:
         planet_id = graphene.ID(required=True)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         planet = Planet.objects.get(id=kwargs['planet_id'])
         
@@ -405,6 +424,7 @@ class ImproveEnginePower(graphene.relay.ClientIDMutation):
     class Input:
         planet_id = graphene.ID(required=True)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         planet = Planet.objects.get(id=kwargs['planet_id'])
         
@@ -435,6 +455,7 @@ class ImproveMilitaryPower(graphene.relay.ClientIDMutation):
     class Input:
         planet_id = graphene.ID(required=True)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         planet = Planet.objects.get(id=kwargs['planet_id'])
         
@@ -465,6 +486,7 @@ class ImproveShieldPower(graphene.relay.ClientIDMutation):
     class Input:
         planet_id = graphene.ID(required=True)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         planet = Planet.objects.get(id=kwargs['planet_id'])
         
@@ -496,6 +518,7 @@ class BuildShip(graphene.relay.ClientIDMutation):
         planet_id = graphene.ID(required=True)
         ship_id = graphene.Int(required=True)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         planet = Planet.objects.get(id=kwargs['planet_id'])
         ship = ships[kwargs['ship_id']]
@@ -548,6 +571,7 @@ class SendAttackMission(graphene.relay.ClientIDMutation):
         fleet = graphene.List(graphene.ID, required=True)
         speed = graphene.Float(default=1.0)
 
+    @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         origin_planet = Planet.objects.get(id=kwargs['origin_planet'])
         target_planet = Planet.objects.get(id=kwargs['target_planet'])
@@ -587,15 +611,10 @@ class SendAttackMission(graphene.relay.ClientIDMutation):
             travel_time=travel_time,
         )
         mission.fleet.set(fleet)
-        # for ship in fleet:
-        #     mission.fleet.add(ship)
         mission.save()
         origin_planet.save()
 
-
-
         r = Redis(host='104.237.1.145', port=6379, db=0)
-
         r.set(f'mission_{mission.id}', mission.id)
 
         return SendAttackMission(mission)
@@ -668,9 +687,9 @@ class SignUp(graphene.relay.ClientIDMutation):
         return SignUp(user)
 
 
-
 class SignIn(graphene.relay.ClientIDMutation):
     token = graphene.String()
+    user = graphene.Field(UserType)
 
     class Input:
         username = graphene.String(required=True)
@@ -697,7 +716,7 @@ class SignIn(graphene.relay.ClientIDMutation):
             password=kwargs['password']
         )
 
-        return SignIn(session.token)
+        return SignIn(tken=session.token, user=user)
 
 
 class Mutation:
