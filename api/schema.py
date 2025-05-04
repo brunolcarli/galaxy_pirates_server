@@ -716,7 +716,7 @@ class SignIn(graphene.relay.ClientIDMutation):
             password=kwargs['password']
         )
 
-        return SignIn(tken=session.token, user=user)
+        return SignIn(token=session.token, user=user)
 
 
 class Mutation:
