@@ -2,10 +2,17 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+
 class UserModel(User):
     fleet_count = models.IntegerField(null=True, default=0)
     buildings = models.IntegerField(null=True, default=0)
 
+
+class Inbox(models.Model):
+    datetime = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=100, null=False, blank=False)
+    message = models.TextField()
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE, null=False)
 
 
 class Ship(models.Model):

@@ -4,10 +4,14 @@ from redis import Redis
 import numpy as np
 import graphene
 from django.conf import settings
-from django.core.management import call_command
-from api.models import Universe, Galaxy, SolarSystem, Planet, Ship, Mission
+from api.models import Universe, Galaxy, Planet, Ship, Mission, UserModel, Inbox
 from api.util import BuildingResourceRatio
 from api.ships import ships
+import graphql_jwt
+# TODO from users.utils import access_required
+
+
+
 
 
 class ResourceCostType(graphene.ObjectType):
@@ -136,6 +140,23 @@ class BuildingRequiredResources(graphene.ObjectType):
     steel = graphene.Int()
     gold = graphene.Int()
     water = graphene.Int()
+
+
+class InboxType(graphene.ObjectType):
+    datetme = graphene.DateTime()
+    title = graphene.String()
+    message = graphene.String()
+
+
+class UserType(graphene.ObjectType):
+    id = graphene.ID()
+    username = graphene.String()
+    fleet_count = graphene.Int()
+    buildings = graphene.Int()
+    planets = graphene.List(PlanetType)
+    fleet = graphene.List(ShipType)
+    missions = graphene.List(MissionType)
+    inbox = graphene.List(InboxType)
 
 
 
@@ -274,6 +295,7 @@ class ImproveWaterFarm(graphene.relay.ClientIDMutation):
         planet.save()
 
         return ImproveWaterFarm(planet)
+
 
 class ImproveSteelMine(graphene.relay.ClientIDMutation):
     planet = graphene.Field(PlanetType)
@@ -536,7 +558,104 @@ class SendAttackMission(graphene.relay.ClientIDMutation):
         return SendAttackMission(mission)
 
 
+class SignUp(graphene.relay.ClientIDMutation):
+    user = graphene.Field(UserType)
+
+    class Input:
+        username = graphene.String(required=True)
+        password = graphene.String(required=True)
+        planet_name = graphene.String(required=True)
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        # Check if username or email already exists
+        try:
+            UserModel.objects.get(username=kwargs['username'])
+        except UserModel.DoesNotExist:
+            pass
+        else:
+            raise Exception('Username already in use')
+
+        # Create user object
+        user = UserModel.objects.create(username=kwargs['username'])
+        user.set_password(kwargs['password'])
+        user.save()
+
+        found_planet = False
+        position = None
+
+        while not found_planet:
+            galaxy = Galaxy.objects.get(id=randint(1, 9))
+            ss = galaxy.solarsystem_set.get(galaxy_position=randint(1, 500))
+
+            orbits = [
+                ss.position_1, ss.position_2,
+                ss.position_3, ss.position_4,
+                ss.position_5, ss.position_6,
+                ss.position_7, ss.position_8,
+                ss.position_9, ss.position_10,
+                ss.position_11, ss.position_12,
+                ss.position_13, ss.position_14,
+                ss.position_15
+            ]
+
+            for i, pos  in  enumerate(orbits):
+                if pos is None:
+                    position = i
+                    break
+            
+            if position is not None:
+                break
+        
+        planet = Planet.objects.create(
+            name=kwargs['planet_name'],
+            temperature = randint(-50, 88),
+            size=randint(66, 266),
+            galaxy=galaxy.id,
+            solar_system=ss.id,
+            position=position,
+            user=user
+        )
+        planet.save()
+
+        return SignUp(user)
+
+
+
+class SignIn(graphene.relay.ClientIDMutation):
+    token = graphene.String()
+
+    class Input:
+        username = graphene.String(required=True)
+        password = graphene.String(required=True)
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        try:
+            user = UserModel.objects.get(
+                username=kwargs['username']
+            )
+        except UserModel.DoesNotExist:
+            raise Exception('User not found')
+
+        if not user.check_password(kwargs['password']):
+            raise Exception('Invalid password')
+
+        user.last_login = datetime.now()
+        user.save()
+
+        session = graphql_jwt.ObtainJSONWebToken.mutate(
+            self,
+            info,
+            username=user.username,
+            password=kwargs['password']
+        )
+
+        return SignIn(session.token)
+
+
 class Mutation:
+    sign_up = SignUp.Field()
+    sign_in = SignIn.Field()
+
     create_planet = CreatePlanet.Field()
     improve_water_farm = ImproveWaterFarm.Field()
     improve_steel_mine = ImproveSteelMine.Field()
