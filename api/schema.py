@@ -38,13 +38,15 @@ class ShipType(graphene.ObjectType):
 
 class MissionType(graphene.ObjectType):
     kind = graphene.String()
-    origin_galaxy = graphene.Int()
-    origin_solar_system = graphene.Int()
-    origin_position = graphene.Int()
-    target_galaxy = graphene.Int()
-    target_solar_system = graphene.Int()
-    target_position = graphene.Int()
-    speed = graphene.Int()
+    origin_coords = graphene.List(graphene.Int)
+    target_coords = graphene.List(graphene.Int)
+    # origin_galaxy = graphene.Int()
+    # origin_solar_system = graphene.Int()
+    # origin_position = graphene.Int()
+    # target_galaxy = graphene.Int()
+    # target_solar_system = graphene.Int()
+    # target_position = graphene.Int()
+    # speed = graphene.Int()
     fleet = graphene.List(ShipType)
     steel = graphene.Int()
     water = graphene.Int()
@@ -55,6 +57,18 @@ class MissionType(graphene.ObjectType):
     arrival_datetime = graphene.DateTime()
     return_datetime = graphene.DateTime()
     distance = graphene.Int()
+    success = graphene.Boolean()
+    travel_time = graphene.Int()
+    state = graphene.String()
+
+    def resolve_fleet(self, info, **kwargs):
+        return self.fleet.all()
+
+    def resolve_origin_coords(self, info, **kwargs):
+        return [self.origin_galaxy, self.origin_solar_system, self.origin_position]
+
+    def resolve_target_coords(self, info, **kwargs):
+        return [self.target_galaxy, self.target_solar_system, self.target_position]
 
 
 class PlanetType(graphene.ObjectType):
@@ -186,6 +200,12 @@ class Query:
         if kwargs['building_type'] == 'engine_power':
             steel, gold, water = BuildingResourceRatio.get_engine_upgrade_ratio(building_lv)
             return BuildingRequiredResources(name='Engine Power', lv=building_lv, steel=steel, gold=gold, water=water)
+
+    mission_reports = graphene.List(MissionType)
+
+    def resolve_mission_reports(self, info, **kwargs):
+        return Mission.objects.filter(**kwargs)
+
 
 
 ################################################
@@ -478,7 +498,7 @@ class SendAttackMission(graphene.relay.ClientIDMutation):
         src_coord = np.array([origin_planet.galaxy, origin_planet.solar_system, origin_planet.position])
         tgt_coord = np.array([target_planet.galaxy, target_planet.solar_system, target_planet.position])
         distance = np.linalg.norm(tgt_coord - src_coord)
-        travel_time = int( ((distance*8) / origin_planet.engine_power) * kwargs['speed'])
+        travel_time = int( ((distance * 60) / origin_planet.engine_power) * kwargs['speed'])
 
         now = datetime.now()
         attack_arrive = now + timedelta(seconds=travel_time)
