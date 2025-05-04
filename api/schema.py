@@ -4,6 +4,7 @@
 - @beelzebruno
 - *.beelzeware.dev
 """
+from collections import Counter
 from datetime import datetime, timedelta
 from random import randint
 from redis import Redis
@@ -204,6 +205,7 @@ class Query:
 
     @access_required
     def resolve_user(self, info, **kwargs):
+        kwargs.pop('user')
         return UserModel.objects.get(**kwargs)
 
     ranking = graphene.List(
@@ -286,6 +288,90 @@ class Query:
         return Mission.objects.filter(**kwargs)
 
 
+    spy = graphene.Field(
+        PlanetType,
+        origin_coords=graphene.List(graphene.Int, required=True),
+        target_coords=graphene.List(graphene.Int, required=True),
+        user_id=graphene.Int(required=True)
+    )
+
+    @access_required
+    def resolve_spy(self, info, **kwargs):
+        if len(kwargs['origin_coords']) < 3 or len(kwargs['target_coords']) < 3:
+            raise Exception('Invalid coordinates shape')
+        try:
+            user = UserModel.objects.get(id=kwargs['user_id'])
+        except UserModel.DoesNotExist:
+            raise Exception('Invalid User ID')
+        
+        if user.id != kwargs['user'].id:
+            raise Exception('unauthorized operation')
+        
+        o_g, o_ss, o_p = kwargs['origin_coords']
+        t_g, t_ss, t_p = kwargs['target_coords']
+
+        try:
+            origin_planet = Planet.objects.get(galaxy=o_g, solar_system=o_ss, position=o_p)
+            target_planet = Planet.objects.get(galaxy=t_g, solar_system=t_ss, position=t_p)
+        except:
+            raise Exception('Invalid planet location')
+
+        if origin_planet.user.id != user.id:
+            raise Exception('unauthorized operation')
+
+        if target_planet.user.id == user.id:
+            raise Exception('Cannot perform this mission on owned planetary systems...')
+        
+        now = datetime.now()
+        
+        target_fleet = ''.join(f'{k} x {v}\n' for k,v in Counter([ship.name for ship in target_planet.fleet.all()]).items())
+
+        spy_report = f'''
+        Spy report from {str(now)} on {target_planet.name} [{t_g}, {t_ss}, {t_p}]
+        Our probe reached the target planetary system and collected valuable intel.
+
+        PLANET RESOURCES
+         Steel: {target_planet.steel} | Water: {target_planet.water} | Gold: {target_planet.gold}
+
+        PLANET DEVELOPMENT
+
+
+         Steel Mine     | {target_planet.steel_mine_lv}
+        ----------------|-----------------
+         Water Farm     | {target_planet.water_farm_lv} 
+        ----------------|-----------------
+         Gold Mine      | {target_planet.gold_mine_lv}
+        ----------------|----------------
+         Military Power | {target_planet.military_power}
+        ----------------|----------------
+         Shield Power   | {target_planet.shield_power}
+        ----------------|----------------
+         Engine Power   | {target_planet.engine_power}
+
+        MILITARY FORCES
+
+         {target_fleet}
+        '''
+
+
+        target_inbox = Inbox.objects.create(
+            title=f'[{str(now)}] Spy activity from {user.name} on {target_planet.name}',
+            datetime=now,
+            message=f'A spy probe comming from {origin_planet.name} [{o_g}, {o_ss}, {o_p}] was detected on {target_planet.name} collecting crucial information about the planet development!',
+            user=target_planet.user
+        )
+        target_inbox.save()
+
+        origin_inbox = Inbox.objects.create(
+            title=f'[{str(now)}] Spy repoort from {target_planet.name}',
+            datetime=now,
+            message=spy_report,
+            user=user
+        )
+        origin_inbox.save()
+
+        return target_planet
+        
 
 ################################################
 # MUTATIONS
@@ -662,7 +748,7 @@ class SignUp(graphene.relay.ClientIDMutation):
 
             for i, pos  in  enumerate(orbits):
                 if pos is None:
-                    position = i
+                    position = i+1
                     break
             
             if position is not None:
