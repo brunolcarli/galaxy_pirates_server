@@ -40,6 +40,7 @@ class Command(BaseCommand):
                         print(planet)
                         for ship in mission.fleet.all():
                             planet.fleet.add(ship)
+                            mission.fleet.remove(ship)
                             planet.save()
 
                         planet.steel += mission.steel
@@ -49,9 +50,8 @@ class Command(BaseCommand):
                         planet.save()
                         print(mission.report)
                         r.delete(key)
-
-                        
                         continue
+
                 if mission.retreat:
                     mission.state = 'returning'
                     mission.report = 'mission retreatead'
