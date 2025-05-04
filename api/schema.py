@@ -483,6 +483,7 @@ class ImproveSteelMine(graphene.relay.ClientIDMutation):
 
         return ImproveSteelMine(planet)
 
+
 class ImproveGoldMine(graphene.relay.ClientIDMutation):
     planet = graphene.Field(PlanetType)
 
@@ -712,6 +713,25 @@ class SendAttackMission(graphene.relay.ClientIDMutation):
 
         r = Redis(host='104.237.1.145', port=6379, db=0)
         r.set(f'mission_{mission.id}', mission.id)
+
+        fleet_report = ''.join(f'{k} x {v}\n' for k,v in Counter([ship.name for ship in mission.fleet.all()]).items())
+
+        attack_alert = f'''
+        [{str(now)}] An incoming hostile fleet from {origin_planet.name} {list(src_coord)} - {origin_planet.user.username}
+        towards the planet {target_planet.name} {list(tgt_coord)} with estimated arrival datetime {str(attack_arrive)}
+
+        The following ships were identified:
+
+        {fleet_report}
+        '''
+ 
+        target_inbox = Inbox.objects.create(
+            title=f'[{str(now)}] Incomming attack from {origin_planet.user.username} on {target_planet.name}',
+            datetime=now,
+            message=attack_alert,
+            user=target_planet.user
+        )
+        target_inbox.save()
 
         return SendAttackMission(mission)
 
