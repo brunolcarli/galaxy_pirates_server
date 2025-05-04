@@ -152,7 +152,7 @@ class BuildingRequiredResources(graphene.ObjectType):
 
 
 class InboxType(graphene.ObjectType):
-    datetme = graphene.DateTime()
+    datetime = graphene.DateTime()
     title = graphene.String()
     message = graphene.String()
 
@@ -285,6 +285,7 @@ class Query:
 
     @access_required
     def resolve_mission_reports(self, info, **kwargs):
+        kwargs.pop('user')
         return Mission.objects.filter(**kwargs)
 
 
@@ -327,7 +328,7 @@ class Query:
         target_fleet = ''.join(f'{k} x {v}\n' for k,v in Counter([ship.name for ship in target_planet.fleet.all()]).items())
 
         spy_report = f'''
-        Spy report from {str(now)} on {target_planet.name} [{t_g}, {t_ss}, {t_p}]
+        Spy report from {str(now)} on {target_planet.name} [{t_g}, {t_ss}, {t_p}] - {target_planet.user.username}
         Our probe reached the target planetary system and collected valuable intel.
 
         PLANET RESOURCES
@@ -355,7 +356,7 @@ class Query:
 
 
         target_inbox = Inbox.objects.create(
-            title=f'[{str(now)}] Spy activity from {user.name} on {target_planet.name}',
+            title=f'[{str(now)}] Spy activity from {user.username} on {target_planet.name}',
             datetime=now,
             message=f'A spy probe comming from {origin_planet.name} [{o_g}, {o_ss}, {o_p}] was detected on {target_planet.name} collecting crucial information about the planet development!',
             user=target_planet.user
@@ -363,7 +364,7 @@ class Query:
         target_inbox.save()
 
         origin_inbox = Inbox.objects.create(
-            title=f'[{str(now)}] Spy repoort from {target_planet.name}',
+            title=f'[{str(now)}] Spy report from {target_planet.name}',
             datetime=now,
             message=spy_report,
             user=user
@@ -371,7 +372,16 @@ class Query:
         origin_inbox.save()
 
         return target_planet
-        
+
+    inbox_messages = graphene.List(
+        InboxType,
+        user__id=graphene.ID(required=True)
+    )
+
+    @access_required
+    def resolve_inbox_messages(self, info, **kwargs):
+        kwargs.pop('user')
+        return Inbox.objects.filter(**kwargs)
 
 ################################################
 # MUTATIONS
