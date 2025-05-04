@@ -1,4 +1,11 @@
 from django.db import models
+from django.contrib.auth.models import User
+
+
+class UserModel(User):
+    fleet_count = models.IntegerField(null=True, default=0)
+    buildings = models.IntegerField(null=True, default=0)
+
 
 
 class Ship(models.Model):
@@ -9,6 +16,7 @@ class Ship(models.Model):
     cargo_space = models.IntegerField()
     speed = models.IntegerField()
     integrity = models.IntegerField()
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE, null=False)
 
 
 class Mission(models.Model):
@@ -33,6 +41,7 @@ class Mission(models.Model):
     success = models.BooleanField()
     travel_time = models.IntegerField()
     state = models.CharField(max_length=50, null=False, blank=False)
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE, null=False)
 
 
 class Planet(models.Model):
@@ -49,12 +58,11 @@ class Planet(models.Model):
     gold_mine_lv = models.IntegerField(default=1)
     steel_mine_lv = models.IntegerField(default=1)
     fields_used = models.IntegerField(default=0)
-
     military_power = models.IntegerField(default=0)
     engine_power = models.IntegerField(default=1)
     shield_power = models.IntegerField(default=0)
-
     fleet = models.ManyToManyField(Ship)
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE, null=False)
 
 
 class Galaxy(models.Model):
