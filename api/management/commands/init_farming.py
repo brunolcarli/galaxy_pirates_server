@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from api.models import Planet
 from time import sleep
 
-STEEL_RATIO, GOLD_RATIO, WATER_RATIO = 2, 1.1, 1.6
+STEEL_RATIO, GOLD_RATIO, WATER_RATIO = .8, .3, .6
 
 
 class Command(BaseCommand):

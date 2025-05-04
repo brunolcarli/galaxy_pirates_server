@@ -128,5 +128,31 @@ ships = [
     "cost": { "steel": 14000, "water": 7000, "gold": 12000 },
     "build_time": 1200,
     "requirements": { "military_power": 25, "shield_power": 20, "engine_power": 12 }
+  },
+  {
+    "id": 10,
+    "name": "Cycler",
+    "description": "Garbage collector spacecraft that collects space debris left around planet gravitational orbits.",
+    "offense_power": 50,
+    "shield_power": 150,
+    "cargo_space": 800,
+    "integrity": 1500,
+    "speed": 40,
+    "cost": { "steel": 10000, "water": 5000, "gold": 5000 },
+    "build_time": 1200,
+    "requirements": { "military_power": 2, "shield_power": 4, "engine_power": 4 }
+  },
+  {
+    "id": 11,
+    "name": "Erodious",
+    "description": "The biggest technological weapon ever developed by humans and aliens of the universe. This starship size can be compared to a moon and have the power to destroy a entire planet with a massive atom desintegration cannon. Known by many as the plane tkiller",
+    "offense_power": 2550,
+    "shield_power": 2150,
+    "cargo_space": 100,
+    "integrity": 5000,
+    "speed": 2,
+    "cost": { "steel": 1000000, "water": 1000000, "gold": 1000000 },
+    "build_time": 1200,
+    "requirements": { "military_power": 40, "shield_power": 30, "engine_power": 40 }
   }
 ]
