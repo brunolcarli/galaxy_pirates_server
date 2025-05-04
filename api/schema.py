@@ -150,6 +150,7 @@ class InboxType(graphene.ObjectType):
 
 class UserType(graphene.ObjectType):
     id = graphene.ID()
+    rank = graphene.Int()
     username = graphene.String()
     fleet_count = graphene.Int()
     buildings = graphene.Int()
@@ -158,6 +159,23 @@ class UserType(graphene.ObjectType):
     missions = graphene.List(MissionType)
     inbox = graphene.List(InboxType)
 
+    def resolve_planets(self, info, **kwargs):
+        return self.planet_set.all()
+    
+    def resolve_fleet(self, info, **kwargs):
+        return self.ship_set.all()
+
+    def resolve_missions(self, info, **kwargs):
+        return self.mission_set.all()
+    
+    def resolve_inbox(self, info, **kwargs):
+        return self.inbox_set.all()
+
+    def resolve_fleet_count(self, info, **kwargs):
+        return self.ship_set.count()
+
+    def resolve_rank(self, info, **kwargs):
+        return self.buildings + self.fleet_count
 
 
 ################################################
@@ -169,6 +187,16 @@ class Query:
     version = graphene.String()
     def resolve_version(self, info, **kwargs):
         return settings.VERSION
+
+
+    user = graphene.Field(
+        UserType,
+        id=graphene.ID(required=True),
+        username=graphene.String(required=True)
+    )
+    def resolve_user(self, info, **kwargs):
+        return UserModel.objects.get(**kwargs)
+
 
     universe = graphene.Field(UniverseType)
     def resolve_universe(self, info, **kwargs):
@@ -611,11 +639,16 @@ class SignUp(graphene.relay.ClientIDMutation):
             temperature = randint(-50, 88),
             size=randint(66, 266),
             galaxy=galaxy.id,
-            solar_system=ss.id,
+            solar_system=ss.galaxy_position,
             position=position,
             user=user
         )
         planet.save()
+
+        building_points = planet.steel_mine_lv + planet.water_farm_lv + planet.gold_mine_lv
+        infra_points = planet.engine_power + planet.military_power + planet.shield_power
+        user.buildings = building_points + infra_points
+        user.save()
 
         return SignUp(user)
 
