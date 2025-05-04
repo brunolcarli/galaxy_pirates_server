@@ -48,13 +48,13 @@ class MissionType(graphene.ObjectType):
     kind = graphene.String()
     origin_coords = graphene.List(graphene.Int)
     target_coords = graphene.List(graphene.Int)
-    # origin_galaxy = graphene.Int()
-    # origin_solar_system = graphene.Int()
-    # origin_position = graphene.Int()
-    # target_galaxy = graphene.Int()
-    # target_solar_system = graphene.Int()
-    # target_position = graphene.Int()
-    # speed = graphene.Int()
+    origin_galaxy = graphene.Int()
+    origin_solar_system = graphene.Int()
+    origin_position = graphene.Int()
+    target_galaxy = graphene.Int()
+    target_solar_system = graphene.Int()
+    target_position = graphene.Int()
+    speed = graphene.Int()
     fleet = graphene.List(ShipType)
     steel = graphene.Int()
     water = graphene.Int()
@@ -192,7 +192,6 @@ class Query:
     def resolve_version(self, info, **kwargs):
         return settings.VERSION
 
-
     user = graphene.Field(
         UserType,
         id=graphene.ID(required=True),
@@ -200,6 +199,13 @@ class Query:
     )
     def resolve_user(self, info, **kwargs):
         return UserModel.objects.get(**kwargs)
+
+    ranking = graphene.List(
+        UserType,
+        limit=graphene.Int()
+    )
+    def resolve_ranking(self, info, **kwargs):
+        return UserModel.objects.all().order_by('-fleet_count', '-buildings')[:kwargs.get('limit', 100)]
 
 
     universe = graphene.Field(UniverseType)
@@ -254,7 +260,12 @@ class Query:
             steel, gold, water = BuildingResourceRatio.get_engine_upgrade_ratio(building_lv)
             return BuildingRequiredResources(name='Engine Power', lv=building_lv, steel=steel, gold=gold, water=water)
 
-    mission_reports = graphene.List(MissionType)
+    mission_reports = graphene.List(
+        MissionType,
+        user__id=graphene.ID(required=True),
+        datetime__gte=graphene.DateTime(),
+        datetime__lte=graphene.DateTime()
+    )
 
     def resolve_mission_reports(self, info, **kwargs):
         return Mission.objects.filter(**kwargs)
