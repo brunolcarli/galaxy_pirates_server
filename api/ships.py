@@ -145,7 +145,7 @@ ships = [
   {
     "id": 11,
     "name": "Erodious",
-    "description": "The biggest technological weapon ever developed by humans and aliens of the universe. This starship size can be compared to a moon and have the power to destroy a entire planet with a massive atom desintegration cannon. Known by many as the plane tkiller",
+    "description": "This starship size can be compared to a moon having enough power to destroy a entire planet!",
     "offense_power": 2550,
     "shield_power": 2150,
     "cargo_space": 100,

@@ -6,12 +6,12 @@
 """
 from collections import Counter
 from datetime import datetime, timedelta
-from random import randint
+from random import randint, choice
 from redis import Redis
 import numpy as np
 import graphene
 from django.conf import settings
-from api.models import Universe, Galaxy, Planet, Ship, Mission, UserModel, Inbox
+from api.models import Universe, Galaxy, Planet, Ship, Mission, UserModel, Inbox, SolarSystem
 from api.util import BuildingResourceRatio
 from api.ships import ships
 import graphql_jwt
@@ -231,8 +231,7 @@ class Query:
 
     @access_required
     def resolve_solar_system(self, info, **kwargs):
-        galaxy = Galaxy.objects.get(id=kwargs['galaxy__id'])
-        return galaxy.solarsystem_set.all()[kwargs['galaxy_position']]
+        return SolarSystem.objects.get(galaxy_position=kwargs['galaxy_position'], galaxy_id=kwargs['galaxy__id'])
 
     hangar = graphene.List(ShipType)
 
@@ -758,42 +757,41 @@ class SignUp(graphene.relay.ClientIDMutation):
         user.set_password(kwargs['password'])
         user.save()
 
-        found_planet = False
-        position = None
+        empty_positions = {
+            'position_1': 1,
+            'position_2': 2,
+            'position_3': 3,
+            'position_4': 4,
+            'position_5': 5,
+            'position_6': 6,
+            'position_7': 7,
+            'position_8': 8,
+            'position_9': 9,
+            'position_10': 10,
+            'position_11': 11,
+            'position_12': 12,
+            'position_13': 13,
+            'position_14': 14,
+            'position_15': 15
+        }
+        position_filter = choice(list(empty_positions))
+        planet_position = empty_positions[position_filter]
 
-        while not found_planet:
-            galaxy = Galaxy.objects.get(id=randint(1, 9))
-            ss = galaxy.solarsystem_set.get(galaxy_position=randint(1, 500))
-
-            orbits = [
-                ss.position_1, ss.position_2,
-                ss.position_3, ss.position_4,
-                ss.position_5, ss.position_6,
-                ss.position_7, ss.position_8,
-                ss.position_9, ss.position_10,
-                ss.position_11, ss.position_12,
-                ss.position_13, ss.position_14,
-                ss.position_15
-            ]
-
-            for i, pos  in  enumerate(orbits):
-                if pos is None:
-                    position = i+1
-                    break
-            
-            if position is not None:
-                break
-        
+        ss = choice(SolarSystem.objects.filter(**{position_filter: None}))
+  
         planet = Planet.objects.create(
             name=kwargs['planet_name'],
-            temperature = randint(-50, 88),
+            temperature=randint(-50, 88),
             size=randint(66, 266),
-            galaxy=galaxy.id,
+            galaxy=ss.galaxy.id,
             solar_system=ss.galaxy_position,
-            position=position,
+            position=planet_position,
             user=user
         )
-        planet.save()
+        planet.save() 
+
+        ss.__setattr__(position_filter, planet)
+        ss.save()
 
         building_points = planet.steel_mine_lv + planet.water_farm_lv + planet.gold_mine_lv
         infra_points = planet.engine_power + planet.military_power + planet.shield_power
