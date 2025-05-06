@@ -649,7 +649,8 @@ class BuildShip(graphene.relay.ClientIDMutation):
             shield_power=ship['shield_power'],
             cargo_space=ship['cargo_space'],
             speed=ship['speed'],
-            integrity=ship['integrity']
+            integrity=ship['integrity'],
+            user=kwargs['user']
         )
         new_ship.save()
         planet.fleet.add(new_ship)
