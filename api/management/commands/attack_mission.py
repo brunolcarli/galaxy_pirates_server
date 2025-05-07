@@ -35,6 +35,7 @@ class Command(BaseCommand):
                     else:
                         print('Returned home')
                         mission.success = True
+                        mission.state = 'completed'
                         mission.save()
                         planet = Planet.objects.get(galaxy=mission.origin_galaxy, solar_system=mission.origin_solar_system, position=mission.origin_position)
                         print(planet)
@@ -143,3 +144,4 @@ class Command(BaseCommand):
                     mission.state = 'returning'
                     mission.save()
 
+            r.close()
