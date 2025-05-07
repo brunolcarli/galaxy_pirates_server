@@ -664,14 +664,15 @@ class SendAttackMission(graphene.relay.ClientIDMutation):
 
     class Input:
         origin_planet = graphene.ID(required=True)
-        target_planet = graphene.ID(required=True)
+        target_planet_coords = graphene.List(graphene.Int, required=True)
         fleet = graphene.List(graphene.ID, required=True)
         speed = graphene.Float(default=1.0)
 
     @access_required
     def mutate_and_get_payload(self, info, **kwargs):
         origin_planet = Planet.objects.get(id=kwargs['origin_planet'])
-        target_planet = Planet.objects.get(id=kwargs['target_planet'])
+        tg, tss, tp = kwargs['target_planet_coords']
+        target_planet = Planet.objects.get(galaxy=tg, solar_system=tss, position=tp)
 
         fleet = Ship.objects.filter(id__in=kwargs['fleet'])
         fleet = [ship for ship in fleet if ship in origin_planet.fleet.all()]
@@ -706,6 +707,7 @@ class SendAttackMission(graphene.relay.ClientIDMutation):
             distance=distance,
             success=False,
             travel_time=travel_time,
+            user=kwargs['user']
         )
         mission.fleet.set(fleet)
         mission.save()
